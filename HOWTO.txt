@@ -1,0 +1,13 @@
+git clone https://github.com/schperics/cnn_lstm_ctc_ocr.git
+cd cnn_lstm_ctc_ocr
+
+# git에서 바로 받으면 data 에 0.1% sampled data가 포함되어있음.
+# 전체set을 받고 싶다면 file server에 tfrecord 말아두었음.
+
+scp -r root@f-an1:/data/ocr/mjsynth/train data/train
+scp -r root@f-an1:/data/ocr/mjsynth/val data/val
+scp -r root@f-an1:/data/ocr/mjsynth/test data/test
+# checkpoint dir과 gpu등은 Makefile을 참조. data dir을 바꾸고 싶다면 src/train.py src/test.py를 참조
+
+make train &
+make test &
