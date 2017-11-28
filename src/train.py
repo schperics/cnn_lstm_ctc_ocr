@@ -62,7 +62,7 @@ tf.app.flags.DEFINE_integer('width_threshold', None,
 tf.app.flags.DEFINE_integer('length_threshold', None,
                             """Limit of input string length width""")
 
-tf.logging.set_verbosity(tf.logging.INFO)
+tf.logging.set_verbosity(tf.logging.DEBUG)
 
 # Non-configurable parameters
 optimizer = 'Adam'
@@ -191,9 +191,9 @@ def main(argv=None):
             logdir=FLAGS.output,
             init_op=init_op,
             summary_op=summary_op,
-            save_summaries_secs=30,
+            save_summaries_secs=60,
             init_fn=_get_init_pretrained(),
-            save_model_secs=150)
+            save_model_secs=1800)
 
         with sv.managed_session(config=session_config) as sess:
             step = sess.run(global_step)
