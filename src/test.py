@@ -31,7 +31,7 @@ tf.app.flags.DEFINE_string('output', 'test',
 
 tf.app.flags.DEFINE_integer('batch_size', 2 ** 8,
                             """Eval batch size""")
-tf.app.flags.DEFINE_integer('test_interval_secs', 60,
+tf.app.flags.DEFINE_integer('test_interval_secs', 600,
                             'Time between test runs')
 
 tf.app.flags.DEFINE_string('device', '/gpu:0',
