@@ -57,8 +57,7 @@ def bucketed_input_pipeline(base_dir, file_patterns,
     image, width, label, length, text, filename = _read_word_record(data_queue)
     image = _preprocess_image(image)  # move after batch?
     
-    keep_input = _get_input_filter(width, width_threshold,
-                                   length, length_threshold)
+    keep_input = _get_input_filter(width, width_threshold, length, length_threshold)
     data_tuple = [image, label, length, text, filename]
     width, data_tuple = tf.contrib.training.bucket_by_sequence_length(input_length=width,
                                                                       tensors=data_tuple,
@@ -71,38 +70,7 @@ def bucketed_input_pipeline(base_dir, file_patterns,
     [image, label, length, text, filename] = data_tuple
     label = tf.deserialize_many_sparse(label, tf.int64)  # post-batching...
     label = tf.cast(label, tf.int32)  # for ctc_loss
-  return image, width, label, length, text, filename
-
-
-def threaded_input_pipeline(base_dir,
-                            file_patterns,
-                            num_threads=4,
-                            batch_size=32,
-                            input_device=None,
-                            num_epochs=None):
-  queue_capacity = num_threads * batch_size * 2
-  # Allow a smaller final batch if we are going for a fixed number of epochs
-  final_batch = (num_epochs != None)
-  
-  data_queue = _get_data_queue(base_dir,
-                               file_patterns,
-                               capacity=queue_capacity,
-                               num_epochs=num_epochs)
-  
-  # each thread has a subgraph with its own reader (sharing filename queue)
-  data_tuples = []  # list of subgraph [image, label, width, text] elements
-  with tf.device(input_device):
-    image, width, label, length, text, filename = _read_word_record(data_queue)
-    image = _preprocess_image(image)  # move after batch?
-    image, width, label, length, text, filename = \
-      tf.train.batch(data_tuples,
-                     batch_size=batch_size,
-                     capacity=queue_capacity,
-                     allow_smaller_final_batch=final_batch,
-                     dynamic_pad=True)
-    label = tf.deserialize_many_sparse(label, tf.int64)  # post-batching...
-    label = tf.cast(label, tf.int32)  # for ctc_loss
-    queue = prefetch_queue([image, width, label, length, text, filename])
+    queue = prefetch_queue([image, width, label, length, text, filename], capacity=10)
   return queue
 
 

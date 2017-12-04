@@ -77,8 +77,6 @@ def _get_input():
   
   # tf.summary.image('images',image) # Uncomment to see images in TensorBoard
   return queue
-  image, width, label, _, _, _ = queue.dequeue()
-  return image, width, label
 
 
 def _get_training(rnn_logits, label, sequence_length):
