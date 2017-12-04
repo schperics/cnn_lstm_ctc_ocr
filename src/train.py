@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import tensorflow as tf
 from tensorflow.contrib import learn
 
@@ -47,12 +46,6 @@ tf.app.flags.DEFINE_float('decay_staircase', False,
 tf.app.flags.DEFINE_integer('max_num_steps', 2 ** 21,
                             """Number of optimization steps to run""")
 
-tf.app.flags.DEFINE_string('train_device', '/gpu:1',
-                           """Device for training graph placement""")
-
-tf.app.flags.DEFINE_string('input_device', '/gpu:0',
-                           """Device for preprocess/batching graph placement""")
-
 tf.app.flags.DEFINE_string('train_path', '../data/train/',
                            """Base directory for training data""")
 tf.app.flags.DEFINE_string('filename_pattern', 'words-*',
@@ -74,31 +67,18 @@ mode = learn.ModeKeys.TRAIN  # 'Configure' training mode for dropout layers
 def _get_input():
   """Set up and return image, label, and image width tensors"""
   
-  image, width, label, _, _, _ = \
-    mjsynth.bucketed_input_pipeline(FLAGS.train_path,
-                                    str.split(FLAGS.filename_pattern, ','),
-                                    batch_size=FLAGS.batch_size,
-                                    num_threads=FLAGS.num_input_threads,
-                                    input_device=FLAGS.input_device,
-                                    width_threshold=FLAGS.width_threshold,
-                                    length_threshold=FLAGS.length_threshold)
+  queue = mjsynth.bucketed_input_pipeline(FLAGS.train_path,
+                                          str.split(FLAGS.filename_pattern, ','),
+                                          batch_size=FLAGS.batch_size,
+                                          num_threads=FLAGS.num_input_threads,
+                                          input_device="/cpu:0",
+                                          width_threshold=FLAGS.width_threshold,
+                                          length_threshold=FLAGS.length_threshold)
   
   # tf.summary.image('images',image) # Uncomment to see images in TensorBoard
+  return queue
+  image, width, label, _, _, _ = queue.dequeue()
   return image, width, label
-
-
-def _get_single_input():
-  """Set up and return image, label, and width tensors"""
-  
-  image, width, label, length, text, filename = \
-    mjsynth.threaded_input_pipeline(deps.get('records'),
-                                    str.split(FLAGS.filename_pattern, ','),
-                                    batch_size=1,
-                                    num_threads=FLAGS.num_input_threads,
-                                    num_epochs=1,
-                                    batch_device=FLAGS.input_device,
-                                    preprocess_device=FLAGS.input_device)
-  return image, width, label, length, text, filename
 
 
 def _get_training(rnn_logits, label, sequence_length):
@@ -166,13 +146,16 @@ def main(argv=None):
   with tf.Graph().as_default():
     global_step = tf.train.get_or_create_global_step()
     
-    image, width, label = _get_input()
+    queue = _get_input()
     
-    with tf.device(FLAGS.train_device):
+    with tf.device("/gpu:0"):
+      image, width, label, _, _, _ = queue.dequeue()
       features, sequence_length = model.convnet_layers(image, width, mode)
       logits = model.rnn_layers(features,
                                 sequence_length,
                                 mjsynth.num_classes())
+    
+    with tf.device("/cpu:0"):
       train_op = _get_training(logits, label, sequence_length)
     
     session_config = _get_session_config()
