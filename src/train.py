@@ -20,6 +20,7 @@ from tensorflow.contrib import learn
 
 import mjsynth
 import model
+import time
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -183,21 +184,31 @@ def main(argv=None):
     sv = tf.train.Supervisor(logdir=FLAGS.output,
                              init_op=init_op,
                              summary_op=summary_op,
-                             save_summaries_secs=60,
+                             save_summaries_secs=60000,
                              init_fn=_get_init_pretrained(),
-                             save_model_secs=1800)
+                             save_model_secs=180000)
     
     with sv.managed_session(config=session_config) as sess:
       step = sess.run(global_step)
-      while step < FLAGS.max_num_steps:
-        if sv.should_stop():
-          break
-        [step_loss, step] = sess.run([train_op, global_step])
-        break;
+      # while step < FLAGS.max_num_steps:
+      # if sv.should_stop():
+      #  break
       
+      print("Warn up")
+      for i in range(100):
+        [step_loss, step] = sess.run([train_op, global_step])
+      
+      print("Start ")
+      s = time.time()
+      for i in range(200):
+        [step_loss, step] = sess.run([train_op, global_step])
+      print("elapsed {} sec".format(time.time() - s))
+      
+      """
       sv.saver.save(sess,
                     os.path.join(FLAGS.output, 'model.ckpt'),
                     global_step=global_step)
+      """
 
 
 if __name__ == '__main__':

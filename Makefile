@@ -21,7 +21,8 @@ mjsynth-tfrecord:
 	cd src ; python mjsynth-tfrecord.py
 
 train:
-	cd src ; CUDA_VISIBLE_DEVICES=0 python train.py --output=../test1 # use --help for options
+	rm -rf ../test1
+	cd src ; CUDA_VISIBLE_DEVICES=0,1,2,3 python train.py --output=../test1 # use --help for options
 
 monitor:
 	tensorboard --logdir=test1 --port=8008
