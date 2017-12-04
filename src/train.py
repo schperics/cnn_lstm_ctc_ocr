@@ -49,6 +49,7 @@ tf.app.flags.DEFINE_integer('max_num_steps', 2 ** 21,
 
 tf.app.flags.DEFINE_string('train_device', '/gpu:1',
                            """Device for training graph placement""")
+
 tf.app.flags.DEFINE_string('input_device', '/gpu:0',
                            """Device for preprocess/batching graph placement""")
 
@@ -139,8 +140,7 @@ def _get_training(rnn_logits, label, sequence_length):
 
 def _get_session_config():
   """Setup session config to soften device placement"""
-  
-  config = tf.ConfigProto(allow_soft_placement=True,
+  config = tf.ConfigProto(allow_soft_placement=False,
                           log_device_placement=False)
   
   return config
@@ -164,7 +164,7 @@ def _get_init_pretrained():
 
 def main(argv=None):
   with tf.Graph().as_default():
-    global_step = tf.contrib.framework.get_or_create_global_step()
+    global_step = tf.train.get_or_create_global_step()
     
     image, width, label = _get_input()
     
