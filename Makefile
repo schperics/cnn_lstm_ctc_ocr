@@ -21,10 +21,10 @@ mjsynth-tfrecord:
 	cd src ; python mjsynth-tfrecord.py
 
 train:
-	cd src ; CUDA_VISIBLE_DEVICES=0 python train.py --output=../test1 # use --help for options
+	cd src ; CUDA_VISIBLE_DEVICES=0 python3 train.py --output=../test1 # use --help for options
 
 monitor:
 	tensorboard --logdir=test1 --port=8008
 
 test:
-	cd src ; CUDA_VISIBLE_DEVICES=1 python test.py --model=../test1 # use --help for options
+	cd src ; CUDA_VISIBLE_DEVICES=1 python3 test.py --model=../test1 # use --help for options

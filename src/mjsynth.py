@@ -60,6 +60,7 @@ def bucketed_input_pipeline(base_dir, file_patterns,
         keep_input = _get_input_filter(width, width_threshold,
                                        length, length_threshold)
         data_tuple = [image, label, length, text, filename]
+
         width, data_tuple = tf.contrib.training.bucket_by_sequence_length(input_length=width,
                                                                           tensors=data_tuple,
                                                                           bucket_boundaries=boundaries,
