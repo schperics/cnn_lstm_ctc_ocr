@@ -6,6 +6,9 @@ import random
 import re
 import tensorflow as tf
 
+FIRST_HANGUL_UNICODE = 0xAC00  # '가'
+LAST_HANGUL_UNICODE = 0xD7A3  # '힣'
+
 
 def load_word():
     words = []
@@ -47,24 +50,12 @@ def dense_to_sparse(t, length):
 
 
 class ToySynth(object):
-    def __init__(self, include_none=True):
-        words, alphabets = load_word()
+    def __init__(self):
+        words, _ = load_word()
         self.words = words
-        self.alphabets = alphabets
-        self.reverse_index = {}
-        self.include_none = include_none
-
-        index = 0
-        if include_none:
-            self.reverse_index[0] = None
-            index += 1
-
-        for c in alphabets:
-            self.reverse_index[c] = index
-            index += 1
 
     def num_classes(self):
-        return len(self.alphabets) + (1 if self.include_none else 0)
+        return LAST_HANGUL_UNICODE - FIRST_HANGUL_UNICODE + 2  # hangle + space
 
     def random_words(self, max_words=3):
         c = random.randint(1, max_words)
@@ -74,18 +65,16 @@ class ToySynth(object):
                 text += ' '
             i = random.randint(0, len(self.words) - 1)
             text += self.words[i]
-        index = [self.reverse_index[c] for c in text]
+        index = [ord(c) - FIRST_HANGUL_UNICODE + 1 if c != ' ' else 0 for c in text]
         return text, index
 
     def label_to_text(self, label):
         text = ''
-        for i in label:
-            if self.include_none:
-                if i == 0:
-                    continue
-                text += self.alphabets[i - 1]
+        for l in label:
+            if l == 0:
+                text += ' '
             else:
-                text += self.alphabets[i]
+                text += chr((l - 1) + FIRST_HANGUL_UNICODE)
         return text
 
     def _random_image(self, height=32, scale=1.0, padding=1, max_words=3):
@@ -119,7 +108,6 @@ def _test():
     print(t.num_classes())
     print(text)
     print(t.label_to_text(label))
-
     """
     d = t.get()
     with tf.Session() as sess:
