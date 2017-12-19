@@ -18,10 +18,11 @@ import os
 import time
 import tensorflow as tf
 from tensorflow.contrib import learn
-
+from time import gmtime, strftime
 import model
 import data_util
 from toy_synth import ToySynth
+from gamja_synth import GamjaSynth
 from config import Config
 
 tf.logging.set_verbosity(tf.logging.WARN)
@@ -95,7 +96,7 @@ def _get_init_trained():
 
 def main(_):
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-    synth = ToySynth()
+    synth = GamjaSynth()
     with tf.Graph().as_default():
         with tf.device("/cpu:0"):
             image, width, label, length = data_util.get_batch(synth, 2**8)
@@ -126,8 +127,12 @@ def main(_):
             summary_writer.add_graph(sess.graph)
 
             while True :
+                print("resotre models")
                 restore_model(sess, _get_checkpoint())  # Get latest checkpoint
+                s = time.time()
+                print("calculating...")
                 step, loss_val, ce, we, l, p = sess.run(step_ops)
+                print("elapsed {}s".format(time.time() - s))
                 print("global_step={}, loss={}, char_error={}, word_error={}".format(
                     step, loss_val, ce, we
                 ))
@@ -139,6 +144,12 @@ def main(_):
 
                 summary_str = sess.run(summary_op)
                 summary_writer.add_summary(summary_str, step)
+
+                print("{}. wait for {}sec".format(
+                    strftime("%Y-%m-%d %H:%M:%S", gmtime()),
+                    Config.save_model_secs + 10
+                ))
+
                 time.sleep(Config.save_model_secs + 10)
 
             coord.join(threads)

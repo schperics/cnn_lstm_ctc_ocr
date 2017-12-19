@@ -2,6 +2,10 @@ import tensorflow as tf
 from tensorflow.contrib.training import bucket_by_sequence_length
 from config import Config
 import numpy as np
+import random
+from PIL import Image
+from PIL import ImageFont
+from PIL import ImageDraw
 
 
 def _preprocess_image(image):
@@ -85,6 +89,28 @@ def stv_to_na(stv):
     for i, idx in enumerate(stv.indices):
         na[idx[0], idx[1]] = stv.values[i]
     return na
+
+
+def synth_image(text, height, scale, padding=1):
+    while True:
+        background = random.randint(0, 255)
+        foreground = random.randint(0, 255)
+        if abs(background - foreground) > 100:
+            break
+
+    font_size = int((height - 2 * padding) * scale)
+    font = ImageFont.truetype("/mnt/SDMiSaeng.ttf", font_size)
+    width = font.getmask(text).size[0] + 2 * padding
+    image = Image.fromarray(np.ones((height, width), np.int8) * background, "L")
+    draw = ImageDraw.Draw(image)
+    draw.text((padding, padding), text, (foreground), font=font)
+    return image
+
+
+def dense_to_sparse(t, length):
+    idx = tf.where(tf.not_equal(t, 0))
+    sparse = tf.SparseTensor(idx, tf.gather_nd(t, idx), [length])
+    return sparse
 
 
 def _test():

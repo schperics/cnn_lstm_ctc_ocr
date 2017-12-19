@@ -6,28 +6,10 @@ import random
 import re
 import tensorflow as tf
 import Hangulpy as han
-
-
-def synth_image(text, height, scale, padding=1):
-    background = 0
-    foreground = 255
-
-    font_size = int((height - 2 * padding) * scale)
-    font = ImageFont.truetype("/mnt/SDMiSaeng.ttf", font_size)
-    width = font.getmask(text).size[0] + 2 * padding
-    image = Image.fromarray(np.ones((height, width), np.int8) * background, "L")
-    draw = ImageDraw.Draw(image)
-    draw.text((padding, padding), text, (foreground), font=font)
-    return image
-
-
-def dense_to_sparse(t, length):
-    idx = tf.where(tf.not_equal(t, 0))
-    sparse = tf.SparseTensor(idx, tf.gather_nd(t, idx), [length])
-    return sparse
-
+import data_util
 
 k = 5
+
 
 class ToySynth(object):
     def num_classes(self):
@@ -35,10 +17,10 @@ class ToySynth(object):
 
     def random_words(self):
         ret = []
-        for _ in range(3) :
-            while True :
+        for _ in range(3):
+            while True:
                 v = random.randint(0, self.num_classes() - 1)
-                if (v % 31) == 0 :
+                if (v % 31) == 0:
                     continue
                 break
             ret.append(v)
@@ -56,7 +38,7 @@ class ToySynth(object):
     def _random_image(self, height=32, scale=1.0, padding=1):
         label = self.random_words()
         text = self.label_to_text(label)
-        image = synth_image(text, height=height, scale=scale, padding=padding)
+        image = data_util.synth_image(text, height=height, scale=scale, padding=padding)
         width, height = image.size
         # image.save("bar.jpg")
         # print(text)
@@ -75,7 +57,7 @@ class ToySynth(object):
              tf.TensorShape([None]),  # label
              tf.TensorShape([])))  # length
         image, width, label, length = dataset.make_one_shot_iterator().get_next()
-        label = tf.serialize_sparse(dense_to_sparse(label, length))
+        label = tf.serialize_sparse(data_util.dense_to_sparse(label, length))
         return image, width, label, length
 
 
@@ -88,7 +70,7 @@ def _test():
 
     d = t.get()
     with tf.Session() as sess:
-        for _ in range(32) :
+        for _ in range(32):
             image, width, label, length = sess.run(d)
             print("image : ", image.shape)
             print("width : ", width)

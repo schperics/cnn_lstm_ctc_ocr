@@ -23,6 +23,7 @@ import model
 from config import Config
 from data_util import get_bucketed_batch, stv_to_na
 from toy_synth import ToySynth
+from gamja_synth import GamjaSynth
 
 tf.logging.set_verbosity(tf.logging.DEBUG)
 
@@ -85,7 +86,7 @@ def main(_):
     os.environ['CUDA_VISIBLE_DEVICES'] = "1"
     with tf.Graph().as_default():
         global_step = tf.train.get_or_create_global_step()
-        synth = ToySynth()
+        synth = GamjaSynth()
         with tf.device("/cpu:0"):
             b_image, b_width, b_label, b_length = get_bucketed_batch(synth)
 
