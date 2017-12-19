@@ -86,10 +86,10 @@ def main(_):
     with tf.Graph().as_default():
         global_step = tf.train.get_or_create_global_step()
         synth = ToySynth()
-        with tf.device(Config.input_device):
+        with tf.device("/cpu:0"):
             b_image, b_width, b_label, b_length = get_bucketed_batch(synth)
 
-        with tf.device(Config.train_device):
+        with tf.device("/gpu:0"):
             features, sequence_length = model.convnet_layers(b_image,
                                                              b_width,
                                                              learn.ModeKeys.TRAIN)
