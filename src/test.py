@@ -19,50 +19,15 @@ import time
 import tensorflow as tf
 from tensorflow.contrib import learn
 
-import mjsynth
 import model
-
-FLAGS = tf.app.flags.FLAGS
-
-tf.app.flags.DEFINE_string('model', '../data/model',
-                           """Directory for model checkpoints""")
-tf.app.flags.DEFINE_string('output', 'test',
-                           """Sub-directory of model for test summary events""")
-
-tf.app.flags.DEFINE_integer('batch_size', 2 ** 8,
-                            """Eval batch size""")
-tf.app.flags.DEFINE_integer('test_interval_secs', 600,
-                            'Time between test runs')
-
-tf.app.flags.DEFINE_string('device', '/gpu:0',
-                           """Device for graph placement""")
-
-tf.app.flags.DEFINE_string('test_path', '../data/',
-                           """Base directory for test/validation data""")
-tf.app.flags.DEFINE_string('filename_pattern', 'val/words-*',
-                           """File pattern for input data""")
-tf.app.flags.DEFINE_integer('num_input_threads', 4,
-                            """Number of readers for input data""")
+import data_util
+from toy_synth import ToySynth
+from config import Config
 
 tf.logging.set_verbosity(tf.logging.WARN)
 
 # Non-configurable parameters
 mode = learn.ModeKeys.INFER  # 'Configure' training mode for dropout layers
-
-
-def _get_input():
-    """Set up and return image, label, width and text tensors"""
-
-    image, width, label, length, text, filename = mjsynth.threaded_input_pipeline(
-        FLAGS.test_path,
-        str.split(FLAGS.filename_pattern, ','),
-        batch_size=FLAGS.batch_size,
-        num_threads=FLAGS.num_input_threads,
-        num_epochs=None,  # Repeat for streaming
-        batch_device=FLAGS.device,
-        preprocess_device=FLAGS.device)
-
-    return image, width, label, length
 
 
 def _get_session_config():
@@ -103,12 +68,11 @@ def _get_testing(rnn_logits, sequence_length, label, label_length):
         tf.summary.scalar('label_error', label_error)
         tf.summary.scalar('sequence_error', sequence_error)
 
-    return loss, label_error, sequence_error
+    return loss, label_error, sequence_error, predictions[0]
 
 
 def _get_checkpoint():
-    """Get the checkpoint path from the given model output directory"""
-    ckpt = tf.train.get_checkpoint_state(FLAGS.model)
+    ckpt = tf.train.get_checkpoint_state(Config.output)
 
     if ckpt and ckpt.model_checkpoint_path:
         ckpt_path = ckpt.model_checkpoint_path
@@ -129,14 +93,17 @@ def _get_init_trained():
     return init_fn
 
 
-def main(argv=None):
+def main(_):
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    synth = ToySynth()
     with tf.Graph().as_default():
-        image, width, label, length = _get_input()
+        with tf.device("/cpu:0"):
+            image, width, label, length = data_util.get_batch(synth, 2**8)
 
-        with tf.device(FLAGS.device):
+        with tf.device("/gpu:0"):
             features, sequence_length = model.convnet_layers(image, width, mode)
-            logits = model.rnn_layers(features, sequence_length, mjsynth.num_classes())
-            loss, label_error, sequence_error = \
+            logits = model.rnn_layers(features, sequence_length, synth.num_classes())
+            loss, label_error, sequence_error, pred = \
                 _get_testing(logits, sequence_length, label, length)
 
         global_step = tf.contrib.framework.get_or_create_global_step()
@@ -148,37 +115,33 @@ def main(argv=None):
         init_op = tf.group(tf.global_variables_initializer(),
                            tf.local_variables_initializer())
 
-        summary_writer = tf.summary.FileWriter(os.path.join(FLAGS.model,
-                                                            FLAGS.output))
+        summary_writer = tf.summary.FileWriter(os.path.join(Config.output, "test"))
 
-        step_ops = [global_step, loss, label_error, sequence_error]
+        step_ops = [global_step, loss, label_error, sequence_error, label, pred]
 
         with tf.Session(config=session_config) as sess:
-
             sess.run(init_op)
-
             coord = tf.train.Coordinator()  # Launch reader threads
             threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
             summary_writer.add_graph(sess.graph)
 
-            try:
-                while True:
-                    restore_model(sess, _get_checkpoint())  # Get latest checkpoint
+            while True :
+                restore_model(sess, _get_checkpoint())  # Get latest checkpoint
+                step, loss_val, ce, we, l, p = sess.run(step_ops)
+                print("global_step={}, loss={}, char_error={}, word_error={}".format(
+                    step, loss_val, ce, we
+                ))
+                p = data_util.stv_to_na(p)
+                l = data_util.stv_to_na(l)
+                for i in range(len(l)):
+                    print("{} : {}".format(synth.label_to_text(l[i]),
+                                           synth.label_to_text(p[i])))
 
-                    if not coord.should_stop():
-                        step_vals = sess.run(step_ops)
-                        print(step_vals)
-                        summary_str = sess.run(summary_op)
-                        summary_writer.add_summary(summary_str, step_vals[0])
-                    else:
-                        break
-                    time.sleep(FLAGS.test_interval_secs)
-            except tf.errors.OutOfRangeError:
-                print('Done')
-            finally:
-                coord.request_stop()
-        coord.join(threads)
+                summary_str = sess.run(summary_op)
+                summary_writer.add_summary(summary_str, step)
+                time.sleep(Config.save_model_secs + 10)
+
+            coord.join(threads)
 
 
 if __name__ == '__main__':

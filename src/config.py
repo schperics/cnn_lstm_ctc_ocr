@@ -25,9 +25,9 @@ tf.app.flags.DEFINE_float('decay_staircase', False,
 tf.app.flags.DEFINE_integer('max_num_steps', 2 ** 21,
                             """Number of optimization steps to run""")
 
-tf.app.flags.DEFINE_string('train_device', '/gpu:1',
+tf.app.flags.DEFINE_string('train_device', '/gpu:0',
                            """Device for training graph placement""")
-tf.app.flags.DEFINE_string('input_device', '/gpu:0',
+tf.app.flags.DEFINE_string('input_device', '/cpu:0',
                            """Device for preprocess/batching graph placement""")
 
 tf.app.flags.DEFINE_string('train_path', '../data/train/',
@@ -40,8 +40,8 @@ tf.app.flags.DEFINE_integer('width_threshold', None,
                             """Limit of input image width""")
 tf.app.flags.DEFINE_integer('length_threshold', None,
                             """Limit of input string length width""")
-tf.app.flags.DEFINE_integer('save_summaries_secs', 600, "")
-tf.app.flags.DEFINE_integer('save_model_secs', 1800, "")
+tf.app.flags.DEFINE_integer('save_summaries_secs', 60, "")
+tf.app.flags.DEFINE_integer('save_model_secs', 600, "")
 
 
 Config.boundaries=[32, 64, 96, 128, 160, 192, 224, 256]

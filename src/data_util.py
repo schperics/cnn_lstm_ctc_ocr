@@ -59,26 +59,45 @@ def get_bucketed_batch(synth):
 
     return b_image, b_width, b_label, b_length
 
-def stv_to_na(stv) :
+
+def get_batch(synth, batch_size):
+    queue_capacity = Config.num_input_threads * batch_size
+
+    data_tuples = []
+
+    for _ in range(4):
+        image, width, label, length = synth.get()
+        image = _preprocess_image(image)  # move after batch?
+        data_tuples.append([image, width, label, length])
+
+    image, width, label, length = tf.train.batch_join(data_tuples,
+                                                      batch_size=batch_size,
+                                                      capacity=queue_capacity,
+                                                      allow_smaller_final_batch=False,
+                                                      dynamic_pad=True)
+    label = tf.deserialize_many_sparse(label, tf.int64)  # post-batching...
+    label = tf.cast(label, tf.int32)  # for ctc_loss
+    return image, width, label, length
+
+
+def stv_to_na(stv):
     na = np.zeros(stv.dense_shape, np.int32)
-    for i, idx in enumerate(stv.indices) :
+    for i, idx in enumerate(stv.indices):
         na[idx[0], idx[1]] = stv.values[i]
     return na
 
 
 def _test():
-    import toy_synth
+    import toy_synth, os
+    os.environ['CUDA_VISIBLE_DEVICES'] = ''
     with tf.device("/cpu:0"):
         t = toy_synth.ToySynth()
-        image, width, label, length = get_bucketed_batch(t)
+        image, width, label, length = get_batch(t)
     with tf.Session() as sess:
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-        print(sess.run([length]))
-        print(sess.run([length]))
-        print(sess.run([length]))
-        print(sess.run([length]))
-        print(sess.run([length]))
+        print(sess.run([label]))
+        print(sess.run([label]))
         coord.join(threads)
 
 
