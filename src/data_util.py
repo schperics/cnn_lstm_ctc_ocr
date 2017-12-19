@@ -109,19 +109,35 @@ def stv_to_na(stv):
     return na
 
 
-def synth_image(text, height, scale, padding=1):
+def make_fonts():
+    locs = ['/mnt/NanumBarunGothicBold.ttf', '/mnt/SDMiSaeng.ttf']
+    #locs = ['/mnt/NanumMyeongjo.ttf']
+    fonts = []
+    scales = [30, 25, 20]
+    for loc in locs:
+        for scale in scales:
+            fonts.append(ImageFont.truetype(loc, scale))
+    return fonts
+
+
+fonts = make_fonts()
+
+
+def synth_image(text, height=32, scale=1.0, padding=1):
     while True:
         background = random.randint(0, 255)
         foreground = random.randint(0, 255)
         if abs(background - foreground) > 100:
             break
 
-    font_size = int((height - 2 * padding) * scale)
-    font = ImageFont.truetype("/mnt/SDMiSaeng.ttf", font_size)
-    width = font.getmask(text).size[0] + 2 * padding
+    r = random.randint(0, len(fonts) - 1)
+    font = fonts[r]
+    woff = random.randint(0, 20)
+    woff2 = random.randint(0, 20)
+    width = woff + font.getmask(text).size[0] + 2 * padding + woff2
     image = Image.fromarray(np.ones((height, width), np.int8) * background, "L")
     draw = ImageDraw.Draw(image)
-    draw.text((padding, padding), text, (foreground), font=font)
+    draw.text((padding + woff, padding), text, (foreground), font=font)
     return image
 
 

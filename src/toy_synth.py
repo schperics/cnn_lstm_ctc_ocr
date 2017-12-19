@@ -81,8 +81,8 @@ class ToySynth(object):
         text, label = self.random_words()
         image = data_util.synth_image(text, height=height, scale=scale, padding=padding)
         width, height = image.size
-        # image.save("bar.jpg")
-        # print(text)
+        image.save("bar.jpg")
+        print(text)
         return np.expand_dims(np.array(image), axis=-1), width, label, len(label)
 
     def get(self):
@@ -104,11 +104,7 @@ class ToySynth(object):
 
 def _test():
     t = ToySynth()
-    print(t.num_classes())
-    print(t.length)
-    text, index = t.random_words()
-    print(index)
-    print("{} : {}".format(text, t.label_to_text(index)))
+    t._random_image()
 
 
 if __name__ == "__main__":

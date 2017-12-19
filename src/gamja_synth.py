@@ -63,10 +63,7 @@ class GamjaSynth(object):
 
 def _test():
     t = GamjaSynth()
-    text, label = t.random_words()
-    print(t.num_classes())
-    print(text)
-    print(t.label_to_text(label))
+    _ = t._random_image()
 
     """
     d = t.get()
