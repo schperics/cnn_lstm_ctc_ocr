@@ -33,8 +33,6 @@ class ToySynth(object):
         self.length = (len(self.fidx), len(self.midx), len(self.lidx))
 
     def _char_to_index(self, c):
-        if c == ' ':
-            return 0
         f, m, l = han.decompose(c)
         f = self.rfidx[f]
         m = self.rmidx[m]
@@ -43,8 +41,7 @@ class ToySynth(object):
 
     def _index_to_char(self, idx):
         if idx == 0:
-            return ' '
-
+            return ''
         idx -= 1
         l = idx % self.length[2]
         idx = idx // self.length[2]
@@ -55,21 +52,17 @@ class ToySynth(object):
         l = self.lidx[l]
         return han.compose(f, m, l)
 
-    def num_classes(self):
-        return 1 + self.length[0] * self.length[1] * self.length[2]
-
     def random_words(self, max_words=3):
-        c = random.randint(1, max_words)
+        c = random.randint(2, max_words)
         text = ''
         for i in range(c):
-            if i > 0:
-                text += ' '
             i = random.randint(0, len(self.words) - 1)
             text += self.words[i]
 
-        index = [self._char_to_index(c) for c in text]
+        # text = "갂갃간갠겐관"
+        label = [self._char_to_index(c) for c in text]
 
-        return text, index
+        return text, label
 
     def label_to_text(self, label):
         text = ''
@@ -104,7 +97,6 @@ class ToySynth(object):
 
 def _test():
     t = ToySynth()
-    print(t.num_classes())
     print(t.length)
     text, index = t.random_words()
     print(index)

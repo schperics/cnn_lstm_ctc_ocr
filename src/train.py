@@ -96,7 +96,7 @@ def main(_):
                                                              learn.ModeKeys.TRAIN)
             logits = model.rnn_layers(features,
                                       sequence_length,
-                                      synth.num_classes())
+                                      synth)
 
             train_op = _get_training(logits, b_label, sequence_length)
 

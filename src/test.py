@@ -99,11 +99,11 @@ def main(_):
     synth = ToySynth()
     with tf.Graph().as_default():
         with tf.device("/cpu:0"):
-            image, width, label, length = data_util.get_batch(synth, 2 ** 8)
+            image, width, label, length = data_util.get_batch(synth, 2 ** 5)
 
         with tf.device("/gpu:0"):
             features, sequence_length = model.convnet_layers(image, width, mode)
-            logits = model.rnn_layers(features, sequence_length, synth.num_classes())
+            logits = model.rnn_layers(features, sequence_length, synth)
             loss, label_error, sequence_error, pred = _get_testing(logits, sequence_length, label, length)
 
         global_step = tf.contrib.framework.get_or_create_global_step()

@@ -144,7 +144,7 @@ def rnn_layer(bottom_sequence, sequence_length, rnn_size, scope):
     return rnn_output_stack
 
 
-def rnn_layers(features, sequence_length, num_classes):
+def rnn_layers(features, sequence_length, synth):
     """Build a stack of RNN layers from input features"""
 
     # Input features is [batchSize paddedSeqLen numFeatures]
@@ -152,17 +152,35 @@ def rnn_layers(features, sequence_length, num_classes):
     weight_initializer = tf.contrib.layers.variance_scaling_initializer()
     bias_initializer = tf.constant_initializer(value=0.0)
 
+    f, m, l = synth.length
+    nc = (f + 1) + (m + 1) + (l + 1)
     with tf.variable_scope("rnn"):
         # Transpose to time-major order for efficiency
         rnn_sequence = tf.transpose(features, perm=[1, 0, 2], name='time_major')
         rnn1 = rnn_layer(rnn_sequence, sequence_length, rnn_size, 'bdrnn1')
         rnn2 = rnn_layer(rnn1, sequence_length, rnn_size, 'bdrnn2')
-        rnn_logits = tf.layers.dense(rnn2, num_classes + 1,
+        rnn_logits = tf.layers.dense(rnn2, nc,
                                      activation=logit_activation,
                                      kernel_initializer=weight_initializer,
                                      bias_initializer=bias_initializer,
                                      name='logits')
-        return rnn_logits
+        a, b, c = tf.split(rnn_logits, [f + 1, m + 1, l + 1], axis=-1)
+        a = tf.nn.softmax(a)
+        a, ab = tf.split(a, [f, 1], axis=-1)
+        b = tf.nn.softmax(b)
+        b, bb = tf.split(b, [m, 1], axis=-1)
+        c = tf.nn.softmax(c)
+        c, cb = tf.split(c, [l, 1], axis=-1)
+        bias = ab * bb * cb
+        z = tf.zeros_like(bias)
+        a = tf.expand_dims(tf.expand_dims(a, -1), -1)
+        b = tf.expand_dims(tf.expand_dims(b, -2), -1)
+        c = tf.expand_dims(tf.expand_dims(c, -2), -2)
+        logits = a * b * c
+        logits = tf.reshape(logits, [-1, 32, f * m * l])
+        logits = tf.concat((z, logits, bias), -1)
+
+    return logits
 
 
 def ctc_loss_layer(rnn_logits, sequence_labels, sequence_length):
