@@ -6,6 +6,24 @@ import random
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
+import re
+
+
+def load_word():
+    words = []
+    alphabet = {}
+    alphabet[' '] = 0
+    special_chars = re.compile('[\.,"?”“-…()‘’!\'-子拍陸]')
+    for l in open("sample.txt", "rb"):
+        for w in str(l, "utf-8").split():
+            w = special_chars.sub('', w).strip()
+            if len(w) == 0:
+                continue
+            words.append(w)
+            for a in w:
+                alphabet[a] = 0
+    alphabet = sorted(alphabet.keys())
+    return words, alphabet
 
 
 def _preprocess_image(image):

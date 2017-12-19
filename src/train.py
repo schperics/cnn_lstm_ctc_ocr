@@ -86,7 +86,7 @@ def main(_):
     os.environ['CUDA_VISIBLE_DEVICES'] = "1"
     with tf.Graph().as_default():
         global_step = tf.train.get_or_create_global_step()
-        synth = GamjaSynth()
+        synth = ToySynth()
         with tf.device("/cpu:0"):
             b_image, b_width, b_label, b_length = get_bucketed_batch(synth)
 

@@ -1,30 +1,12 @@
 import numpy as np
 import random
-import re
 import tensorflow as tf
 import data_util
 
 
-def load_word():
-    words = []
-    alphabet = {}
-    alphabet[' '] = 0
-    special_chars = re.compile('[\.,"?”“-…()‘’!\'-子拍陸]')
-    for l in open("sample.txt", "rb"):
-        for w in str(l, "utf-8").split():
-            w = special_chars.sub('', w).strip()
-            if len(w) == 0:
-                continue
-            words.append(w)
-            for a in w:
-                alphabet[a] = 0
-    alphabet = sorted(alphabet.keys())
-    return words, alphabet
-
-
 class GamjaSynth(object):
     def __init__(self):
-        words, alphabets = load_word()
+        words, alphabets = data_util.load_word()
         self.words = words
         self.alphabets = alphabets
         self.reverse_index = {}

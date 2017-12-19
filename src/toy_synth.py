@@ -1,43 +1,84 @@
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageDraw
 import numpy as np
 import random
-import re
 import tensorflow as tf
 import Hangulpy as han
 import data_util
 
-k = 5
-
 
 class ToySynth(object):
-    def num_classes(self):
-        return k * k * k
+    def __init__(self):
+        self.words, alphabet = data_util.load_word()
 
-    def random_words(self):
-        ret = []
-        for _ in range(3):
-            while True:
-                v = random.randint(0, self.num_classes() - 1)
-                if (v % 31) == 0:
-                    continue
-                break
-            ret.append(v)
-        return ret
+        self.fidx = {}
+        self.midx = {}
+        self.lidx = {}
+        self.rfidx = {}
+        self.rmidx = {}
+        self.rlidx = {}
+
+        def _ins(v, idx, ridx):
+            if v not in ridx:
+                i = len(idx)
+                idx[i] = v
+                ridx[v] = i
+
+        for c in alphabet:
+            if c == ' ':
+                continue
+            f, m, l = han.decompose(c)
+            _ins(f, self.fidx, self.rfidx)
+            _ins(m, self.midx, self.rmidx)
+            _ins(l, self.lidx, self.rlidx)
+
+        self.length = (len(self.fidx), len(self.midx), len(self.lidx))
+
+    def _char_to_index(self, c):
+        if c == ' ':
+            return 0
+        f, m, l = han.decompose(c)
+        f = self.rfidx[f]
+        m = self.rmidx[m]
+        l = self.rlidx[l]
+        return l + self.length[2] * (m + f * self.length[1]) + 1
+
+    def _index_to_char(self, idx):
+        if idx == 0:
+            return ' '
+
+        idx -= 1
+        l = idx % self.length[2]
+        idx = idx // self.length[2]
+        m = idx % self.length[1]
+        f = idx // self.length[1]
+        f = self.fidx[f]
+        m = self.midx[m]
+        l = self.lidx[l]
+        return han.compose(f, m, l)
+
+    def num_classes(self):
+        return 1 + self.length[0] * self.length[1] * self.length[2]
+
+    def random_words(self, max_words=3):
+        c = random.randint(1, max_words)
+        text = ''
+        for i in range(c):
+            if i > 0:
+                text += ' '
+            i = random.randint(0, len(self.words) - 1)
+            text += self.words[i]
+
+        index = [self._char_to_index(c) for c in text]
+
+        return text, index
 
     def label_to_text(self, label):
         text = ''
         for ll in label:
-            f = ll // (k * k)
-            m = (ll % k) // k
-            l = ll % k
-            text += han.compose(f, m, l)
+            text += self._index_to_char(ll)
         return text
 
     def _random_image(self, height=32, scale=1.0, padding=1):
-        label = self.random_words()
-        text = self.label_to_text(label)
+        text, label = self.random_words()
         image = data_util.synth_image(text, height=height, scale=scale, padding=padding)
         width, height = image.size
         # image.save("bar.jpg")
@@ -63,19 +104,11 @@ class ToySynth(object):
 
 def _test():
     t = ToySynth()
-    label = t.random_words()
     print(t.num_classes())
-    print(label)
-    print(t.label_to_text(label))
-
-    d = t.get()
-    with tf.Session() as sess:
-        for _ in range(32):
-            image, width, label, length = sess.run(d)
-            print("image : ", image.shape)
-            print("width : ", width)
-            print("label : ", label)
-            print("length : ", length)
+    print(t.length)
+    text, index = t.random_words()
+    print(index)
+    print("{} : {}".format(text, t.label_to_text(index)))
 
 
 if __name__ == "__main__":
