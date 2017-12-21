@@ -16,6 +16,7 @@ _sample_words = "10k_words.txt"
 
 def _make_alphabet():
     alphabet = []
+    alphabet.append('')
     for c in _additional_chars:
         alphabet.append(c)
     for l in codecs.open(os.path.join(_base_dir, _alphabet_file), "r", "utf-8"):

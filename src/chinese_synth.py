@@ -8,7 +8,7 @@ import simplified_chinese as lang
 class ChineseSynth(object):
     def __init__(self, max_char_len=20, max_words=3):
         # for zero padding
-        self._num_class = len(lang.alphabet) + 1
+        self._num_class = len(lang.alphabet)
         self._num_words = len(lang.words)
         self._max_char_len = max_char_len
         self._max_words = max_words
@@ -28,11 +28,11 @@ class ChineseSynth(object):
             if i > 0:
                 text += ' '
             text += word
-        index = [lang.rindex[c] + 1 for c in text]  # zero padding
+        index = [lang.rindex[c] for c in text]  # zero padding
         return text, index
 
     def label_to_text(self, label):
-        return "".join([lang.alphabet[l - 1] for l in label])
+        return "".join([lang.alphabet[l] for l in label])
 
     def _random_image(self, height=32):
         text, label = self.random_words()
